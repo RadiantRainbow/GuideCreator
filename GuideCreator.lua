@@ -1,6 +1,12 @@
 local _,addon = ...
 local version = select(4, GetBuildInfo())
 
+-- Syntax constants
+local SYNTAX_GUIDELIME = "Guidelime"
+local SYNTAX_ZYGOR = "Zygor"
+local SYNTAX_RXP = "RXP"
+local DEFAULT_SYNTAX = SYNTAX_GUIDELIME
+
 local eventFrame = CreateFrame("Frame")
 local BackdropTemplate = BackdropTemplateMixin and "BackdropTemplate" or nil
 local f = CreateFrame("Frame", "GC_Editor", UIParent, BackdropTemplate)
@@ -84,9 +90,14 @@ end
 local function GC_init()
     if not GC_Settings then
         GC_Settings = {}
-        GC_Settings["syntax"] = "RXP"
+        GC_Settings["syntax"] = DEFAULT_SYNTAX
         GC_Settings["mapCoords"] = 0
         GC_Settings["NPCnames"] = false
+    end
+
+    -- Ensure upgraded/old settings get the new default if missing
+    if not GC_Settings["syntax"] then
+        GC_Settings["syntax"] = DEFAULT_SYNTAX
     end
 
     if not GC_GuideList then
@@ -187,7 +198,7 @@ function questObjectiveComplete(id, name, obj, text, type)
     local n, monster, item
     local step = ""
 
-    if GC_Settings["syntax"] == "Guidelime" then
+    if GC_Settings["syntax"] == SYNTAX_GUIDELIME then
         if type == "monster" then
             _, _, monster, n = strfind(text, "(.*)%sslain%:%s%d*%/(%d*)")
             n = tonumber(n)
@@ -232,7 +243,7 @@ function questObjectiveComplete(id, name, obj, text, type)
             end
         end
         step = "\n" .. step
-    elseif GC_Settings["syntax"] == "Zygor" then
+    elseif GC_Settings["syntax"] == SYNTAX_ZYGOR then
         if type == "monster" then
             _, _, monster, n = strfind(text, "(.*)%sslain%:%s%d+%/(%d+)")
 
@@ -282,7 +293,7 @@ function questObjectiveComplete(id, name, obj, text, type)
             end
         end
         lastUnique = isUnique
-    elseif GC_Settings["syntax"] == "RXP" then
+    elseif GC_Settings["syntax"] == SYNTAX_RXP then
         step = string.format(".complete %d,%d --%s",id, obj,text)
 		if x and y then
 			local distance = (lastx - x) ^ 2 + (lasty - y) ^ 2
@@ -325,7 +336,7 @@ function questTurnIn(id, name)
     local step = "\n"
     local x, y = 0.0, 0.0
     local mapName = GetMapInfo()
-    if GC_Settings["syntax"] == "Guidelime" then
+    if GC_Settings["syntax"] == SYNTAX_GUIDELIME then
         if questNPC and previousQuestNPC ~= questNPC then
             if GC_Settings["mapCoords"] >= 0 then
                 local x, y = GetPlayerMapPosition("player")
@@ -339,7 +350,7 @@ function questTurnIn(id, name)
         if previousQuestNPC == questNPC and questEvent ~= "complete" then
             step = "\\\\" .. step
         end
-    elseif GC_Settings["syntax"] == "Zygor" then
+    elseif GC_Settings["syntax"] == SYNTAX_ZYGOR then
         x, y = GetPlayerMapPosition("player")
         x = x * 100
         y = y * 100
@@ -351,7 +362,7 @@ function questTurnIn(id, name)
             end
         end
         step = string.format("%s    .turnin %s##%d", step, name, id)
-    elseif GC_Settings["syntax"] == "RXP" then
+    elseif GC_Settings["syntax"] == SYNTAX_RXP then
         x, y = GetPlayerMapPosition("player")
 		if x and y then
 			x = x * 100
@@ -384,7 +395,7 @@ function questAccept(id, name)
     local step = "\n"
     local x, y = 0.0, 0.0
     local mapName = GetMapInfo()
-    if GC_Settings["syntax"] == "Guidelime" then
+    if GC_Settings["syntax"] == SYNTAX_GUIDELIME then
         if questNPC and previousQuestNPC ~= questNPC then
             if GC_Settings["mapCoords"] >= 0 then
                 local x, y = GetPlayerMapPosition("player")
@@ -398,7 +409,7 @@ function questAccept(id, name)
         if questNPC and previousQuestNPC == questNPC then
             step = "\\\\" .. step
         end
-    elseif GC_Settings["syntax"] == "Zygor" then
+    elseif GC_Settings["syntax"] == SYNTAX_ZYGOR then
         x, y = GetPlayerMapPosition("player")
         x = x * 100
         y = y * 100
@@ -418,7 +429,7 @@ function questAccept(id, name)
         else
             print("error")
         end
-    elseif GC_Settings["syntax"] == "RXP" then
+    elseif GC_Settings["syntax"] == SYNTAX_RXP then
         x, y = GetPlayerMapPosition("player")
         if x and y then
 			x = x * 100
@@ -456,12 +467,12 @@ local function SetHearthstone()
     local x, y = GetPlayerMapPosition("player")
     x = x * 100
     y = y * 100
-    if GC_Settings["syntax"] == "Guidelime" then
+    if GC_Settings["syntax"] == SYNTAX_GUIDELIME then
         local x, y = GetPlayerMapPosition("player")
         step = format("\n[G%.2f,%.2f%s][S]Set your Hearthstone to %s", x, y, mapName, subzone)
-    elseif GC_Settings["syntax"] == "Zygor" then
+    elseif GC_Settings["syntax"] == SYNTAX_ZYGOR then
         step = string.format("\nstep\n   .home %s|.goto %.2f,%.2f", subzone, x, y)
-    elseif GC_Settings["syntax"] == "RXP" then
+    elseif GC_Settings["syntax"] == SYNTAX_RXP then
         step = string.format("\nstep\n    .goto %s,%.2f,%.2f\n    .home >>Set your Hearthstone to %s", mapName, x, y, subzone)
     end
     updateGuide(step)
@@ -471,15 +482,15 @@ local function UseHearthstone()
     local step = "\n"
     local home = GetBindLocation()
     
-    if GC_Settings["syntax"] == "Guidelime" then
+    if GC_Settings["syntax"] == SYNTAX_GUIDELIME then
         step = format("\n[H][OC]Hearth to %s", home)
-    elseif GC_Settings["syntax"] == "Zygor" then
+    elseif GC_Settings["syntax"] == SYNTAX_ZYGOR then
 		local mapName = GetMapInfo()
 		local x, y = GetPlayerMapPosition("player")
 		x = x * 100
 		y = y * 100
         step = string.format("\nstep\n    Hearth to %s|goto %s,%.2f,.2f,2|noway|c", home,mapName,x,y)
-    elseif GC_Settings["syntax"] == "RXP" then
+    elseif GC_Settings["syntax"] == SYNTAX_RXP then
         step = string.format("\nstep\n    #completewith next\n    .hs >>Hearth to %s", home)
     end
     updateGuide(step)
@@ -493,12 +504,12 @@ local function FlightPath()
     if not x and y then return end
 	x = x * 100
     y = y * 100
-    if GC_Settings["syntax"] == "Guidelime" then
+    if GC_Settings["syntax"] == SYNTAX_GUIDELIME then
         local x, y = GetPlayerMapPosition("player")
         step = format("\n[G%.2f,%.2f%s]Get the [P %s] flight path", x, y, mapName, subzone)
-    elseif GC_Settings["syntax"] == "Zygor" then
+    elseif GC_Settings["syntax"] == SYNTAX_ZYGOR then
         step = string.format("\nstep\n    goto %s,%.2f,%.2f\n    fpath %s", mapName, x, y, subzone)
-    elseif GC_Settings["syntax"] == "RXP" then
+    elseif GC_Settings["syntax"] == SYNTAX_RXP then
         step = string.format("\nstep\n    .goto %s,%.2f,%.2f\n    .fp >>Get the %s Flight Path", mapName, x, y, subzone)
     end
     updateGuide(step)
@@ -529,12 +540,13 @@ local function TakeFlightPath(index)
     x = x * 100
     y = y * 100
 
-    if GC_Settings["syntax"] == "Guidelime" then
+    local step = "\n"
+    if GC_Settings["syntax"] == SYNTAX_GUIDELIME then
         local x, y = GetPlayerMapPosition("player")
         step = format("\n[G%.2f,%.2f%s]Fly to [F %s]", x, y, mapName, subzone)
-    elseif GC_Settings["syntax"] == "Zygor" then
+    elseif GC_Settings["syntax"] == SYNTAX_ZYGOR then
         step = string.format("\nstep\n  .goto %s,%.2f,%.2f|n\n    Fly to %s|goto %s|noway|c",mapName, x, y, subzone, zone)
-    elseif GC_Settings["syntax"] == "RXP" then
+    elseif GC_Settings["syntax"] == SYNTAX_RXP then
         step = string.format("\nstep\n    .goto %s,%.2f,%.2f\n    .fly %s >>Fly to %s", mapName, x, y, subzone, subzone)
     end
     updateGuide(step)
@@ -567,6 +579,8 @@ eventFrame:SetScript(
             f:SetWidth(GC_Settings.width)
             f:SetHeight(GC_Settings.height)
             print("GuideCreator Loaded")
+
+            GC_CreateOptionsPanel()
 
         elseif event == "PLAYER_ENTERING_WORLD" then
             onFly = UnitOnTaxi("player")
@@ -854,11 +868,12 @@ local function addGotoStep(arg)
         local x, y = GetPlayerMapPosition("player")
         x = x * 100
         y = y * 100
-        if GC_Settings["syntax"] == "Guidelime" then
+        local step = "\n"
+        if GC_Settings["syntax"] == SYNTAX_GUIDELIME then
             step = format("\n[G%.2f,%.2f%s]%s", x, y, mapName, arg)
-        elseif GC_Settings["syntax"] == "Zygor" then
+        elseif GC_Settings["syntax"] == SYNTAX_ZYGOR then
             step = string.format("\nstep\n    .goto %s,%.2f,%.2f\n    %s", mapName, x, y, arg)
-        elseif GC_Settings["syntax"] == "RXP" then
+        elseif GC_Settings["syntax"] == SYNTAX_RXP then
             step = string.format("\nstep\n    .goto %s,%.2f,%.2f\n    >>%s", mapName, x, y, arg)
         end
         updateGuide(step)
@@ -1007,6 +1022,121 @@ SlashCmdList["GUIDE"] = function(msg)
                 return
             end
         end
+    end
+end
+
+-- Options panel
+function GC_CreateOptionsPanel()
+    if GC_OptionsPanel then return end
+
+    local panel = CreateFrame("Frame", "GC_OptionsPanel", UIParent)
+    panel.name = "GuideCreator"
+    GC_OptionsPanel = panel
+
+    local title = panel:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
+    title:SetPoint("TOPLEFT", 16, -16)
+    title:SetText("GuideCreator")
+
+    -- Syntax dropdown
+    local syntaxLabel = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    syntaxLabel:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -16)
+    syntaxLabel:SetText("Syntax:")
+
+    local syntaxDropdown = CreateFrame("Frame", "GC_SyntaxDropdown", panel, "UIDropDownMenuTemplate")
+    syntaxDropdown:SetPoint("LEFT", syntaxLabel, "RIGHT", -10, 0)
+    UIDropDownMenu_SetWidth(syntaxDropdown, 150)
+
+    local function RefreshSyntax()
+        local current = GC_Settings.syntax or DEFAULT_SYNTAX
+        UIDropDownMenu_SetSelectedValue(syntaxDropdown, current)
+        UIDropDownMenu_SetText(syntaxDropdown, current)
+    end
+
+    UIDropDownMenu_Initialize(syntaxDropdown, function(self, level)
+        local info = UIDropDownMenu_CreateInfo()
+        for _, syntax in ipairs({SYNTAX_GUIDELIME, SYNTAX_ZYGOR, SYNTAX_RXP}) do
+            info.text = syntax
+            info.value = syntax
+            info.checked = GC_Settings.syntax == syntax
+            info.func = function(self)
+                GC_Settings.syntax = self.value
+                RefreshSyntax()
+            end
+            UIDropDownMenu_AddButton(info)
+        end
+    end)
+    RefreshSyntax()
+
+    -- Map coordinates dropdown
+    local mapLabel = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    mapLabel:SetPoint("TOPLEFT", syntaxLabel, "BOTTOMLEFT", 0, -32)
+    mapLabel:SetText("Map coordinates:")
+
+    local mapDropdown = CreateFrame("Frame", "GC_MapDropdown", panel, "UIDropDownMenuTemplate")
+    mapDropdown:SetPoint("LEFT", mapLabel, "RIGHT", -10, 0)
+    UIDropDownMenu_SetWidth(mapDropdown, 220)
+
+    local mapOptions = {
+        {value = -1, text = "Disabled (use guide database)"},
+        {value = 0,  text = "Accept / turn-in only"},
+        {value = 1,  text = "All quest objectives"},
+    }
+
+    local function MapTextForValue(value)
+        for _, opt in ipairs(mapOptions) do
+            if opt.value == value then
+                return opt.text
+            end
+        end
+        return mapOptions[2].text
+    end
+
+    local function RefreshMap()
+        local current = GC_Settings.mapCoords or 0
+        UIDropDownMenu_SetSelectedValue(mapDropdown, current)
+        UIDropDownMenu_SetText(mapDropdown, MapTextForValue(current))
+    end
+
+    UIDropDownMenu_Initialize(mapDropdown, function(self, level)
+        local info = UIDropDownMenu_CreateInfo()
+        for _, opt in ipairs(mapOptions) do
+            info.text = opt.text
+            info.value = opt.value
+            info.checked = GC_Settings.mapCoords == opt.value
+            info.func = function(self)
+                GC_Settings.mapCoords = self.value
+                RefreshMap()
+            end
+            UIDropDownMenu_AddButton(info)
+        end
+    end)
+    RefreshMap()
+
+    -- NPC names checkbox
+    local npcCheck = CreateFrame("CheckButton", "GC_NPCnamesCheck", panel, "UICheckButtonTemplate")
+    npcCheck:SetPoint("TOPLEFT", mapLabel, "BOTTOMLEFT", -4, -10)
+    _G[npcCheck:GetName().."Text"]:SetText("Show NPC names on accept / turn-in")
+
+    local function RefreshNPC()
+        npcCheck:SetChecked(GC_Settings.NPCnames and true or false)
+    end
+
+    npcCheck:SetScript("OnClick", function(self)
+        GC_Settings.NPCnames = self:GetChecked() and true or false
+    end)
+
+    panel:SetScript("OnShow", function(self)
+        RefreshSyntax()
+        RefreshMap()
+        RefreshNPC()
+    end)
+
+    -- Register in AddOns options menu
+    if version >= 100000 and Settings then
+        local category = Settings.RegisterCanvasLayoutCategory(panel, "GuideCreator")
+        Settings.RegisterAddOnCategory(category)
+    else
+        InterfaceOptions_AddCategory(panel)
     end
 end
 
