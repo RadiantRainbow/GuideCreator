@@ -1,7 +1,0 @@
-## Interface: 11402
-## Title: GuideCreator
-## Notes: Auto generates in-game leveling guides
-## Author: Zarant
-## SavedVariables: GC_GuideList, GC_Settings
-
-GuideCreator.lua
